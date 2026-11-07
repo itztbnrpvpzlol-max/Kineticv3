@@ -5,9 +5,14 @@ namespace kin{
 struct M{float a=1,b=0,c=0,d=1,e=0,f=0;};
 static float cl(float v,float lo,float hi){return v<lo?lo:(v>hi?hi:v);}
 static float bez(float x1,float y1,float x2,float y2,float x){float lo=0,hi=1,u=x;for(int i=0;i<24;i++){u=(lo+hi)*.5f;float m=1-u;float bx=3*m*m*u*x1+3*m*u*u*x2+u*u*u;if(bx<x)lo=u;else hi=u;}float m=1-u;return 3*m*m*u*y1+3*m*u*u*y2+u*u*u;}
-static float ease(int m,float u){switch(m){case 2:return bez(.42f,0,.58f,1,u);case 3:return bez(.42f,0,1,1,u);case 4:return bez(0,0,.58f,1,u);default:return u;}}
-float Track::at(float t)const{if(k.empty())return base;if(t<=k.front().t)return k.front().v;if(t>=k.back().t)return k.back().v;size_t i=1;while(k[i].t<t)i++;const Key&a=k[i-1];const Key&b=k[i];if(a.interp==1)return a.v;float u=(t-a.t)/(b.t-a.t);return a.v+(b.v-a.v)*ease(a.interp,u);}
-void Track::set(float t,float v,int i){for(auto&x:k)if(std::fabs(x.t-t)<1e-4f){x.v=v;x.interp=i;return;}k.push_back({t,v,i});std::sort(k.begin(),k.end(),[](const Key&a,const Key&b){return a.t<b.t;});}
+static float ease(const Key&a,const Key&b,float u){switch(a.interp){case 2:return bez(a.ox,0,1-b.ix,1,u);case 3:return bez(a.ox,0,1,1,u);case 4:return bez(0,0,1-b.ix,1,u);default:return u;}}
+float Track::at(float t)const{if(k.empty())return base;if(t<=k.front().t)return k.front().v;if(t>=k.back().t)return k.back().v;size_t i=1;while(k[i].t<t)i++;const Key&a=k[i-1];const Key&b=k[i];if(a.interp==1)return a.v;float u=(t-a.t)/(b.t-a.t);return a.v+(b.v-a.v)*ease(a,b,u);}
+void Track::set(float t,float v,int i){for(auto&x:k)if(std::fabs(x.t-t)<1e-4f){x.v=v;x.interp=i;return;}k.push_back({t,v,i,.42f,.42f});std::sort(k.begin(),k.end(),[](const Key&a,const Key&b){return a.t<b.t;});}
+void Track::del(float t){for(size_t i=0;i<k.size();i++)if(std::fabs(k[i].t-t)<1e-3f){k.erase(k.begin()+i);return;}}
+void Track::move(float t0,float t1,float v){for(size_t i=0;i<k.size();i++)if(std::fabs(k[i].t-t0)<1e-3f){Key n=k[i];k.erase(k.begin()+i);for(size_t j=0;j<k.size();j++)if(std::fabs(k[j].t-t1)<1e-3f){k.erase(k.begin()+j);break;}n.t=t1;n.v=v;k.push_back(n);std::sort(k.begin(),k.end(),[](const Key&a,const Key&b){return a.t<b.t;});return;}}
+void Track::interp(float t,int i){for(auto&x:k)if(std::fabs(x.t-t)<1e-3f)x.interp=i;}
+void Track::infl(float t,float ox,float ix){for(auto&x:k)if(std::fabs(x.t-t)<1e-3f){x.ox=cl(ox,0.01f,1.f);x.ix=cl(ix,0.01f,1.f);}}
+void removeLayer(Comp&c,int i){if(i<0||i>=(int)c.L.size())return;c.L.erase(c.L.begin()+i);for(auto&l:c.L){if(l.parent==i)l.parent=-1;else if(l.parent>i)l.parent--;}}
 static M mul(const M&p,const M&q){return{p.a*q.a+p.c*q.b,p.b*q.a+p.d*q.b,p.a*q.c+p.c*q.d,p.b*q.c+p.d*q.d,p.a*q.e+p.c*q.f+p.e,p.b*q.e+p.d*q.f+p.f};}
 static M local(const Layer&l,float t){float px=l.p[0].at(t),py=l.p[1].at(t),sc=l.p[2].at(t)/100.f,r=l.p[3].at(t)*0.0174532925f,ax=l.p[5].at(t),ay=l.p[6].at(t);float cs=std::cos(r),sn=std::sin(r);M m{sc*cs,sc*sn,-sc*sn,sc*cs,0,0};m.e=px-(m.a*ax+m.c*ay);m.f=py-(m.b*ax+m.d*ay);return m;}
 static M world(const Comp&c,int i,float t){M m=local(c.L[i],t);int p=c.L[i].parent,g=0;while(p>=0&&p<(int)c.L.size()&&g<32){m=mul(local(c.L[p],t),m);p=c.L[p].parent;g++;}return m;}
