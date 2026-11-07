@@ -6,7 +6,9 @@ on:
   workflow_dispatch:
 jobs:
   apk:
-    runs-on: ubuntu-latest
+    # ubuntu-latest moved to Ubuntu 26 in late 2026; pin a supported LTS
+    # image so Android SDK setup remains compatible and reproducible.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
