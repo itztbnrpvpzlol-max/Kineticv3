@@ -26,7 +26,11 @@ jobs:
             echo "sdkmanager was not found under $SDK_ROOT/cmdline-tools"
             exit 1
           fi
+          # sdkmanager exits after accepting all licenses, which can close the pipe early.
+          # Disable pipefail for this pipeline so yes receiving SIGPIPE does not fail the step.
+          set +o pipefail
           yes | "$SDKMANAGER" --sdk_root="$SDK_ROOT" --licenses
+          set -o pipefail
           "$SDKMANAGER" --sdk_root="$SDK_ROOT" "platforms;android-34" "build-tools;34.0.0" "ndk;26.1.10909125" "cmake;3.22.1"
       - uses: gradle/actions/setup-gradle@v4
         with:
