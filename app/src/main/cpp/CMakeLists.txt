@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.22.1)
+project(kinetic)
+add_library(kinetic SHARED engine.cpp jni.cpp)
+find_library(jnig jnigraphics)
+find_library(lg log)
+target_link_libraries(kinetic ${jnig} ${lg})
