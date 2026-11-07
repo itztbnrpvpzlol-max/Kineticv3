@@ -65,7 +65,7 @@ object Store{
 fun dir(c:Context)=File(c.filesDir,"projects").apply{mkdirs()}
 fun save(c:Context,e:Ed){File(dir(c),e.id+".kin").writeText(dump(e))}
 fun list(c:Context):List<File> = dir(c).listFiles{f->f.extension=="kin"}?.sortedByDescending{it.lastModified()}?:emptyList()
-fun header(f:File):List<String>=f.useLines{it.first()}.split('\t')
+fun header(f:File):List<String> =f.useLines{it.first()}.split('\t')
 fun open(f:File):Ed{val t=f.readText();val h=t.lineSequence().first().split('\t');val e=Ed(f.nameWithoutExtension,h[5],h[1].toInt(),h[2].toInt(),h[3].toFloat(),h[4].toFloat());fill(e,t);return e}
 fun dump(e:Ed):String{val sb=StringBuilder();sb.append("C\t${e.cw}\t${e.ch}\t${e.eng.fps}\t${e.eng.dur}\t${e.name.replace('\t',' ')}\n")
 for(i in e.ly.indices){val f=e.eng.info(i);sb.append("L\t${e.ly[i].name.replace('\t',' ')}\t${e.ly[i].col.toArgb()}\t"+f.joinToString("\t")+"\n")
